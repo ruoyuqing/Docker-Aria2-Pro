@@ -1,121 +1,166 @@
-**English** | [中文](https://p3terx.com/archives/docker-aria2-pro.html)
+# Privacy
 
-# Aria2 Pro
+![GitHub last commit](https://img.shields.io/github/last-commit/kallydev/privacy?style=flat-square)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/kallydev/privacy?style=flat-square)
+![GitHub license](https://img.shields.io/github/license/kallydev/privacy?style=flat-square)
 
-[![LICENSE](https://img.shields.io/github/license/P3TERX/docker-aria2-pro?style=flat-square&label=LICENSE)](https://github.com/P3TERX/docker-aria2-pro/blob/master/LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/P3TERX/docker-aria2-pro.svg?style=flat-square&label=Stars&logo=github)](https://github.com/P3TERX/docker-aria2-pro/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/P3TERX/docker-aria2-pro.svg?style=flat-square&label=Forks&logo=github)](https://github.com/P3TERX/docker-aria2-pro/fork)
-[![Docker Stars](https://img.shields.io/docker/stars/p3terx/aria2-pro.svg?style=flat-square&label=Stars&logo=docker)](https://hub.docker.com/r/p3terx/aria2-pro)
-[![Docker Pulls](https://img.shields.io/docker/pulls/p3terx/aria2-pro.svg?style=flat-square&label=Pulls&logo=docker&color=orange)](https://hub.docker.com/r/p3terx/aria2-pro)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/P3TERX/docker-aria2-pro/Docker%20images%20build%20test?label=Actions&logo=github&style=flat-square)
+个人数据泄漏检测网站，适用于近期流传的 40GB+ 数据。
 
-A perfect Aria2 Docker image.
+## 示例截图
 
-## Features
+![screenshot](screenshot/screenshot.png)
 
-* Supported platforms: `amd64`, `i386`, `arm64`, `arm/v7`, `arm/v6`
-* Full Function: `Async DNS`, `BitTorrent`, `Firefox3 Cookie`, `GZip`, `HTTPS`, `Message Digest`, `Metalink`, `XML-RPC`, `SFTP`
-* `max-connection-per-server` unlimited.
-* retry on slow speed (`lowest-speed-limit`) and connection close
-* High BT download rate and speed
-* Get BitTorrent tracker automatically
-* Download error automatically delete files
-* Download cancel automatically delete files
-* Automatically clear `.aria2` suffix files
-* Automatically clear `.torrent` suffix files
-* No lost task progress, no repeated downloads
-* And more powerful features
+可以前往预览 [示例网站](https://privacy.kallydev.com/)（暂未部署最新版本）。
 
-## Usage
+## 使用方法
 
-### Docker CLI
+### 导入数据
 
-- No matter what architecture platform is used, just use the following command to start the container ( Just need to replace the `<TOKEN>` field ):
-```
-docker run -d \
-    --name aria2-pro \
-    --restart unless-stopped \
-    --log-opt max-size=1m \
-    -e PUID=$UID \
-    -e PGID=$GID \
-    -e UMASK_SET=022 \
-    -e RPC_SECRET=<TOKEN> \
-    -e RPC_PORT=6800 \
-    -p 6800:6800 \
-    -e LISTEN_PORT=6888 \
-    -p 6888:6888 \
-    -p 6888:6888/udp \
-    -v $PWD/aria2-config:/config \
-    -v $PWD/aria2-downloads:/downloads \
-    p3terx/aria2-pro
+数据来源于近期流传的 40GB+ 的压缩包，目前已支持 QQ / JD / SF 的多表查询。
+
+1. 创建 SQLite 数据库
+
+```bash
+sqlite3 database.db
 ```
 
-- Then you need a WebUI for control, such as [AriaNg](https://github.com/mayswind/AriaNg). [This link](http://ariang.mayswind.net/latest) is provided by the developer and can be used directly. Or use Docker to deploy it yourself:
-```
-docker run -d \
-    --name ariang \
-    --log-opt max-size=1m \
-    --restart unless-stopped \
-    -p 6880:6880 \
-    p3terx/ariang
-```
+分别执行以下 SQL 语句，用于创建 QQ / 京东 / 顺丰数据表。
 
-> **TIPS:** It is important for the firewall to open ports.
-
-### Docker Compose
-
-- Download [Compose file](https://github.com/P3TERX/Docker-Aria2-Pro/blob/master/docker-compose.yml)
-```
-wget git.io/aria2-pro.yml
+```sql
+CREATE TABLE IF NOT EXISTS qq
+(
+    id           BIGINT,
+    qq_number    BIGINT,
+    phone_number INT
+);
 ```
 
-- Edit Compose file
+```sql
+CREATE TABLE IF NOT EXISTS jd
+(
+    id           BIGINT,
+    name         TEXT,
+    nickname     TEXT,
+    password     TEXT,
+    email        TEXT,
+    id_number    TEXT,
+    phone_number INT
+);
 ```
-vim aria2-pro.yml
+
+```sql
+CREATE TABLE IF NOT EXISTS sf
+(
+    id           BIGINT,
+    name         TEXT,
+    phone_number INT,
+    address      TEXT
+);
 ```
 
-- Compose up
+2. 导入 QQ 库
+
+把 `6.9更新总库.txt` 文件放到 `database` 目录下，然后执行 `qq.py`。
+
+3.导入京东库
+
+把 `www_jd_com_12g.txt` 文件放到 `database` 目录下，然后执行 `jd.py`。
+
+- 创建索引
+
+```bash
+sqlite3 database.db
 ```
-docker-compose -f aria2-pro.yml up -d
+
+```sql
+CREATE INDEX index_qq ON qq (qq, phone);
+CREATE INDEX index_jd ON jd (email, id_number, phone_number, phone_number);
 ```
 
-### Other
+4. 导入顺丰库
 
-- [Docker templates for UNRAID](https://github.com/P3TERX/unraid-docker-templates)
-- [Docker Tutorial for Synology DSM (Chinese)](https://p3terx.com/archives/synology-nas-docker-advanced-tutorial-deploy-aria2-pro.html)
+还没来得及写，欢迎 PR 或者等我明天再写。
 
-## Parameters
+### 编译代码
 
-| Parameter                        | Function                                                                                                                                                                  |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-e PUID=$UID`<br>`-e PGID=$GID` | Bind UID and GID to the container, which means you can use a non-root user to manage downloaded files.                                                                    |
-| `-e UMASK_SET=022`               | For umask setting of Aria2, optional , default if left unset is `022`                                                                                                     |
-| `-e RPC_SECRET=<TOKEN>`          | Set RPC secret authorization token. Default: `P3TERX`                                                                                                                     |
-| `-e RPC_PORT=6800`               | Set RPC listen port.                                                                                                                                                      |
-| `-p 6800:6800`                   | bind RPC listen port.                                                                                                                                                     |
-| `-e LISTEN_PORT=6888`            | Set TCP/UDP port number for BitTorrent/DHT listen.                                                                                                                        |
-| `-p 6888:6888`                   | Bind BT listen port (TCP).                                                                                                                                                |
-| `-p 6888:6888/udp`               | Bind DHT lisen port (UDP).                                                                                                                                                |
-| `-v <PATH>:/config`              | Contains all relevant configuration files.                                                                                                                                |
-| `-v <PATH>:/downloads`           | Location of downloads on disk.                                                                                                                                            |
-| `-e DISK_CACHE=<SIZE>`           | Set up disk cache. SIZE can include `K` or `M` (1K = 1024, 1M = 1024K), e.g `64M`.                                                                                        |
-| `-e IPV6_MODE=<BOOLEAN>`         | Whether to enable IPv6 support for Aria2. Optional: `true` or `false`. Set the options `disable-ipv6=false` and `enable-dht6=true` in the configuration file(aria2.conf). |
-| `-e UPDATE_TRACKERS=<BOOLEAN>`   | Whether to update BT Trackers List automatically. Optional: `true` or `flase`, default if left unset is `true`                                                            |
-| `-e CUSTOM_TRACKER_URL=<URL>`    | Custom BT Trackers List URL. If not set, it will be get from https://trackerslist.com/all_aria2.txt.                                                                      |
-| `-e TZ=Asia/Shanghai`            | Specify a timezone to use e.g. `Asia/Shanghai`                                                                                                                            |
+1. 安装 Yarn
 
-## Advanced
+```bash
+npm install -g yarn
+```
 
-I am working hard on my English, so this part may be explained in detail later. If you can read Chinese, read the details in [my blog](https://p3terx.com/archives/docker-aria2-pro.html).
+2. 安装 Golang
 
-## Credits
+```bash
+sudo apt install -y snap
+sudo snap install golang --classic
+```
 
-* [aria2](https://github.com/aria2/aria2)
-* [P3TERX/aria2.conf](https://github.com/P3TERX/aria2.conf)
-* [P3TERX/aria2-builder](https://github.com/P3TERX/aria2-builder)
-* [just-containers/s6-overlay](https://github.com/just-containers/s6-overlay)
-* [XIU2/TrackersListCollection](https://github.com/XIU2/TrackersListCollection)
+3. 下载源代码
+
+```bash
+git clone http://github.com/kallydev/privacy
+```
+
+4. 编译前端
+
+```bash
+cd privacy
+yarn install
+yarn build
+```
+
+5. 编译后端
+
+```bash
+cd ../server
+go build -o app main/main.go
+```
+
+### 运行
+
+修改 `config.yaml` 配置文件，然后直接运行后端。
+
+```bash
+./app --config config.yaml
+```
+
+## TODO
+
+- [ ] 编译 Docker 镜像
+- [ ] 取模分表
+- [ ] 微博账号和手机号关联查询
+- [ ] 重构所有导入脚本以及编写微博和顺丰的导入脚本
+- [ ] 自动加载支持的数据表
+- [ ] 示例网站支持以上新的功能
+
+## Q&A
+
+### 1. 为什么代码和文档都写的这么生草？
+
+我当时只是随口说了一个时间，结果才发现安排得有亿点紧，于是就开始放飞自我。之后会逐步进行重构，**同时也欢迎发起 PR**。
+
+### 2. 部署或使用遇到问题如何解决?
+
+1. 在这个 Repo 发起 Issues，空余时间我会协助你解决。
+2. 把错误信息粘贴到 `https://stackoverflow.com/search?q=` 这个链接后面，然后浏览器打开。
+3. 因为个人并不喜欢回复 PM，所以 Telegram 之类问我问题不太可能会回复。
+4. 通往罗马的道路千万条，自己努力吧少年。
+
+### 3. 为什么示例网站只支持 QQ 和手机号关系查询?
+
+示例服务器的硬盘不够，而且这些大文件传输特别麻烦，先搁置一段时间。
+
+### 4. 为什么导入脚本会提示出现无效数据?
+
+因为源数据的格式实在是太乱了，存在大量错排。脚本会自动忽略这些解析失败的数据。
+
+### 5. 为什么不提供数据库文件?
+
+众所周知传播这些数据属于违法行为，所以这个项目不提供相关数据。
 
 ## License
 
-[MIT](https://github.com/P3TERX/docker-aria2-pro/blob/master/LICENSE) © P3TERX
+Copyright (c) KallyDev. All rights reserved.
+
+Licensed under the [MIT](LICENSE).
